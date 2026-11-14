@@ -41,6 +41,7 @@ assert.equal(low.status,'PAUSED');
 assert.equal(low.button.includes('Resume'),true);
 assert.equal(low.waiting,0,'low demand is admitted without an entry queue');
 assert.equal(low.queued,0,'low demand stays free-flowing');
+assert.equal(low.arrivals,low.active+low.waiting+low.completed,'low-demand arrivals are accounted for');
 assert.equal(Number(low.waitingLabel),low.waiting);
 assert.equal(Number(low.activeLabel),low.active);
 assert.equal(Number(low.completedLabel),low.completed);
@@ -76,9 +77,9 @@ const stuckNonqueued=beforeProgress.filter(v=>{const after=afterById.get(v.id);r
 assert.ok(afterHeavy.recentDistance>0,'traffic continues moving during heavy load');
 assert.ok(afterHeavy.recentCompletions>0,'heavy scenario is not gridlocked');
 
-const pauseStart=qa.state();qa.run();qa.advance(10);qa.pause();const frozen=qa.state();qa.advance(30);const remainsFrozen=qa.state();assert.equal(remainsFrozen.simSeconds,frozen.simSeconds,'paused simulation time stays fixed');assert.equal(remainsFrozen.active,frozen.active,'paused vehicle count stays fixed');assert.deepEqual(remainsFrozen, frozen);
+qa.run();const liveState=qa.state();assert.equal(liveState.status,'LIVE');assert.ok(liveState.button.includes('Pause simulation'));assert.match(liveState.runHint,/running/);qa.advance(10);qa.pause();const frozen=qa.state();qa.advance(30);const remainsFrozen=qa.state();assert.equal(remainsFrozen.simSeconds,frozen.simSeconds,'paused simulation time stays fixed');assert.equal(remainsFrozen.active,frozen.active,'paused vehicle count stays fixed');assert.deepEqual(remainsFrozen, frozen);
 qa.run();qa.advance(10);qa.pause();const resumed=qa.state();assert.ok(resumed.simSeconds>remainsFrozen.simSeconds,'resume advances the timer');assert.notEqual(JSON.stringify(resumed),JSON.stringify(remainsFrozen),'resume advances state');
-qa.reset();let resetState=qa.state();assert.equal(resetState.status,'READY');assert.equal(resetState.timer,'00:00');assert.ok(resetState.button.includes('Run simulation'));assert.ok(resetState.timeMetric==='undefined'||resetState.meanTrip===null);
+qa.reset();let resetState=qa.state();assert.equal(resetState.status,'READY');assert.equal(resetState.timer,'00:00');assert.ok(resetState.button.includes('Run simulation'));assert.equal(resetState.meanTrip,null);assert.equal(elements.timeMetric.textContent,'No completed trips yet');
 
 qa.set({network:'grid',demand:5,capacity:3,flyovers:true,signals:true});qa.run();qa.advance(10);qa.pause();elements.network.value='arterial';elements.network.onchange();const changedPaused=qa.state();assert.equal(changedPaused.status,'READY');assert.equal(changedPaused.timer,'00:00');assert.ok(changedPaused.button.includes('Run simulation'));assert.match(changedPaused.counts,/10 active \/ 10 links · 8 junctions/);
 qa.run();qa.advance(10);elements.network.value='mixed';elements.network.onchange();const changedRunning=qa.state();assert.equal(changedRunning.status,'READY');assert.equal(changedRunning.timer,'00:00');assert.ok(changedRunning.button.includes('Run simulation'));assert.match(changedRunning.counts,/15 active \/ 15 links · 9 junctions/);
