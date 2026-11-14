@@ -27,7 +27,7 @@ const elements = Object.fromEntries(ids.split(/\s+/).map(id => [id, {
   setAttribute(){}, addEventListener(){}, classList:{add(){},remove(){}}
 }]));
 const drawOps=[];
-const context = new Proxy({fillStyle:'',strokeStyle:'',lineWidth:1}, {get(target,key){if(key==='setLineDash')return ()=>{};if(key==='fillRect')return (...args)=>drawOps.push({type:'rect',color:target.fillStyle,args});if(key==='fillText')return (...args)=>drawOps.push({type:'text',text:args[0],x:args[1],y:args[2]});return target[key]||(()=>{})},set(target,key,value){target[key]=value;return true}});
+const context = new Proxy({fillStyle:'',strokeStyle:'',lineWidth:1}, {get(target,key){if(key==='setLineDash')return ()=>{};if(key==='fillRect')return (...args)=>drawOps.push({type:'rect',color:target.fillStyle,args});if(key==='strokeRect')return (...args)=>drawOps.push({type:'strokeRect',color:target.strokeStyle,width:target.lineWidth,args});if(key==='stroke')return ()=>drawOps.push({type:'stroke',color:target.strokeStyle,width:target.lineWidth});if(key==='fillText')return (...args)=>drawOps.push({type:'text',text:args[0],x:args[1],y:args[2]});return target[key]||(()=>{})},set(target,key,value){target[key]=value;return true}});
 elements.map.getContext=()=>context;
 elements.map.getBoundingClientRect=()=>({width:960,height:427});
 const document={getElementById:id=>elements[id],body:{}};
@@ -39,6 +39,7 @@ const qa=window.__trafficQA;
 assert.ok(qa,'QA hooks injected into isolated test copy');
 const history=[];
 function scenario(config,duration=180){qa.set(config);qa.run();qa.advance(duration);qa.pause();const result=qa.state();history.push({...config,...result});return result}
+function longScenario(config,duration=600){const result=scenario(config,duration);assert.equal(result.simSeconds,duration);assert.equal(result.arrivals,duration*2,'120 trips/min demand is identical for each long arterial case');assert.equal(result.unroutable,0);return result}
 
 const low=scenario({network:'grid',demand:1,capacity:3,flyovers:true,signals:true},180);
 assert.equal(low.simSeconds,180);
@@ -66,6 +67,16 @@ for(const network of ['grid','arterial','mixed']){
 }
 for(const [network,sets] of Object.entries(comparisons))for(const [control,result] of Object.entries(sets)){assert.equal(result.simSeconds,180,network+' '+control+' uses the same run duration');assert.equal(result.arrivals,360,network+' '+control+' starts with the same Peak arrival count');assert.equal(result.unroutable,0,network+' '+control+' has no discarded/unroutable trips')}
 
+const arterialLong={};
+const arterialBase={network:'arterial',demand:5,capacity:3,flyovers:true,signals:true};
+arterialLong.capacityMinus20=longScenario({...arterialBase,capacity:1});
+arterialLong.capacityBase=longScenario({...arterialBase,capacity:3});
+arterialLong.capacityPlus20=longScenario({...arterialBase,capacity:5});
+arterialLong.flyoversOff=longScenario({...arterialBase,flyovers:false});
+arterialLong.flyoversOn=longScenario({...arterialBase,flyovers:true});
+arterialLong.signalsOff=longScenario({...arterialBase,signals:false});
+arterialLong.signalsOn=longScenario({...arterialBase,signals:true});
+
 const heavy=scenario({network:'grid',demand:5,capacity:3,flyovers:true,signals:true},900);
 assert.equal(heavy.simSeconds,900);
 assert.equal(heavy.unroutable,0,'all generated demand has a route in the connected test networks');
@@ -79,15 +90,23 @@ assert.ok(heavy.waiting>0,'heavy arrivals remain visible in source queues');
 assert.ok(heavy.completed>0,'heavy run completes trips');
 assert.ok(heavy.sourceSpillback>0,'some source queues are blocked by physically occupied entry lanes');
 assert.equal(heavy.arrivals,heavy.active+heavy.waiting+heavy.completed,'every generated request is completed, active, or waiting');
-const phoneDraw=qa.renderAt(290,360),carColors=new Set(['#51a87a','#5294a3','#477f69','#7c9b62','#518f86','#de6951']);
-const phoneCars=phoneDraw.filter(op=>op.type==='rect'&&carColors.has(op.color)&&op.args[2]<3&&op.args[3]<2);
-const carIndexes=phoneDraw.map((op,i)=>op.type==='rect'&&carColors.has(op.color)&&op.args[2]<3&&op.args[3]<2?i:-1).filter(i=>i>=0);
+const phoneDraw=qa.renderAt(290,360),carColors=new Set(['#51a87a','#5294a3','#477f69','#7c9b62','#518f86','#de6951','#de5944']);
+const phoneCars=phoneDraw.filter(op=>op.type==='rect'&&carColors.has(op.color)&&op.args[2]<=4.5&&op.args[3]<=2);
+const carIndexes=phoneDraw.map((op,i)=>op.type==='rect'&&carColors.has(op.color)&&op.args[2]<=4.5&&op.args[3]<=2?i:-1).filter(i=>i>=0);
 const signalIndexes=phoneDraw.map((op,i)=>op.type==='text'&&(op.text==='EW'||op.text==='NS')?i:-1).filter(i=>i>=0);
+const phoneQueueHighlights=phoneDraw.filter(op=>op.type==='stroke'&&op.color==='rgba(218,92,66,.5)');
+const onRoadQueueLanes=new Set(qa.cars().filter(v=>v.queued).map(v=>v.edge+':'+v.dir+':'+v.lane)).size;
+const desktopDraw=qa.renderAt(800,427),desktopCars=desktopDraw.filter(op=>op.type==='rect'&&carColors.has(op.color)&&op.args[2]<=4.5&&op.args[3]<=2),desktopQueueHighlights=desktopDraw.filter(op=>op.type==='stroke'&&op.color==='rgba(218,92,66,.5)');
 const phoneMetrics=qa.phoneMetrics();
 assert.equal(phoneCars.length,heavy.active,'every active vehicle remains drawn at phone canvas width');
-assert.ok(Math.max(...phoneCars.map(op=>op.args[2]))<=.9,'phone-width vehicle markers stay compact but visible');
+assert.ok(Math.min(...phoneCars.map(op=>op.args[2]))>=2.8,'phone-width vehicle markers meet the minimum visible size');
+assert.ok(phoneCars.every(op=>op.args[3]<=1.7),'phone-width marker cross sections stay within a lane pitch');
+assert.ok(Math.max(...phoneCars.map(op=>op.args[2]))<=4.5,'phone-width markers have a bounded display size');
+assert.equal(phoneQueueHighlights.length,onRoadQueueLanes,'each queued on-road lane has a real queue highlight');
+assert.equal(desktopCars.length,heavy.active,'every active vehicle remains drawn at desktop canvas width');
+assert.ok(desktopCars.every(op=>op.args[2]>=3.2&&op.args[3]<=2),'desktop vehicles are visible and remain lane-confined');
+assert.ok(desktopQueueHighlights.length>0,'desktop map displays on-road queue highlights');
 assert.ok(phoneMetrics.minProjectedBumperGapPx>0,'modeled bumper clearance remains positive at phone map scale');
-assert.ok(phoneMetrics.minIconClearancePx>0,'scaled same-lane vehicle markers do not overlap at phone canvas size');
 assert.equal(phoneMetrics.lanePlacementViolations,0,'vehicle lane centers remain within road widths');
 assert.equal(signalIndexes.length,18,'all nine grid junctions paint both approach labels');
 assert.ok(Math.min(...signalIndexes)>Math.max(...carIndexes),'signal labels draw above all vehicles');
@@ -109,4 +128,4 @@ qa.run();qa.advance(10);elements.network.value='mixed';elements.network.onchange
 assert.match(html,/@media\(max-width:850px\)/);assert.match(html,/@media\(max-width:520px\)/);
 assert.match(html,/not a validated real-world traffic prediction/i);
 
-console.log(JSON.stringify({lowDemand:low,comparisons,heavyLoad:{...heavy,arrivalsAccounted:heavy.arrivals===heavy.active+heavy.waiting+heavy.completed,maxActive:heavy.maxActive,maxWaiting:heavy.maxWaiting,maxQueued:heavy.maxQueued,minGapDuringRunMeters:heavy.minGapDuringRunKm*1000,progressAfterAdditional60s:{recentDistance:afterHeavy.recentDistance,recentCompletions:afterHeavy.recentCompletions,stuckNonqueued},flyoverClosure:{vehiclesAlreadyOnFlyover:beforeFlyoverClose.vehiclesOnFlyover,closedFutureRoutesAfterToggle:closingFlyover.closedFutureRoutes,pendingClosedRoutesAfterToggle:closingFlyover.pendingClosedRoutes,strandedOnClosedFlyoverAfterClearance:afterFlyoverClose.vehiclesOnDisabledFlyover},junctionRuleCheck:{groundTransitions:heavy.groundJunctionTransitions,conflictSteps:heavy.junctionConflictSteps,maxGroundMovementsPerNodePerTick:heavy.maxGroundTransitionsPerJunctionStep},phoneCanvas:{viewportWidth:320,canvasWidth:290,height:360,vehicleMarkers:phoneCars.length,maxMarkerWidth:Math.max(...phoneCars.map(op=>op.args[2])),...phoneMetrics,signalLabels:signalIndexes.length,signalsDrawnAfterVehicles:true}},lifecycle:{pauseFreeze:true,resumeRestarts:true,resetReady:true,changeNetworkWhilePausedReady:true,changeNetworkWhileRunningReady:true,mobileCssBreakpointsPresent:true,illustrativeModelLabelPresent:true},simulations:history.length},null,2));
+console.log(JSON.stringify({lowDemand:low,comparisons,arterialLong:Object.fromEntries(Object.entries(arterialLong).map(([k,v])=>[k,{simSeconds:v.simSeconds,arrivals:v.arrivals,speed:v.speed,queued:v.queued,completed:v.completed,waiting:v.waiting,flow:v.flow,meanTrip:v.meanTrip}])),heavyLoad:{...heavy,arrivalsAccounted:heavy.arrivals===heavy.active+heavy.waiting+heavy.completed,maxActive:heavy.maxActive,maxWaiting:heavy.maxWaiting,maxQueued:heavy.maxQueued,minGapDuringRunMeters:heavy.minGapDuringRunKm*1000,progressAfterAdditional60s:{recentDistance:afterHeavy.recentDistance,recentCompletions:afterHeavy.recentCompletions,stuckNonqueued},flyoverClosure:{vehiclesAlreadyOnFlyover:beforeFlyoverClose.vehiclesOnFlyover,closedFutureRoutesAfterToggle:closingFlyover.closedFutureRoutes,pendingClosedRoutesAfterToggle:closingFlyover.pendingClosedRoutes,strandedOnClosedFlyoverAfterClearance:afterFlyoverClose.vehiclesOnDisabledFlyover},junctionRuleCheck:{groundTransitions:heavy.groundJunctionTransitions,conflictSteps:heavy.junctionConflictSteps,maxGroundMovementsPerNodePerTick:heavy.maxGroundTransitionsPerJunctionStep},phoneCanvas:{viewportWidth:320,canvasWidth:290,height:360,vehicleMarkers:phoneCars.length,minMarkerWidth:Math.min(...phoneCars.map(op=>op.args[2])),maxMarkerWidth:Math.max(...phoneCars.map(op=>op.args[2])),queueHighlights:phoneQueueHighlights.length,desktopMarkers:desktopCars.length,desktopQueueHighlights:desktopQueueHighlights.length,...phoneMetrics,signalLabels:signalIndexes.length,signalsDrawnAfterVehicles:true}},lifecycle:{pauseFreeze:true,resumeRestarts:true,resetReady:true,changeNetworkWhilePausedReady:true,changeNetworkWhileRunningReady:true,mobileCssBreakpointsPresent:true,illustrativeModelLabelPresent:true},simulations:history.length},null,2));

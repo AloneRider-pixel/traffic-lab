@@ -975,6 +975,78 @@
       }
     }
   },
+  "arterialLong": {
+    "capacityMinus20": {
+      "simSeconds": 600,
+      "arrivals": 1200,
+      "speed": 37.1,
+      "queued": 164,
+      "completed": 773,
+      "waiting": 29,
+      "flow": 6516,
+      "meanTrip": 3.0280401034928848
+    },
+    "capacityBase": {
+      "simSeconds": 600,
+      "arrivals": 1200,
+      "speed": 36.8,
+      "queued": 144,
+      "completed": 782,
+      "waiting": 0,
+      "flow": 6576,
+      "meanTrip": 3.006660272804774
+    },
+    "capacityPlus20": {
+      "simSeconds": 600,
+      "arrivals": 1200,
+      "speed": 38.3,
+      "queued": 120,
+      "completed": 790,
+      "waiting": 0,
+      "flow": 6648,
+      "meanTrip": 2.9832225738396625
+    },
+    "flyoversOff": {
+      "simSeconds": 600,
+      "arrivals": 1200,
+      "speed": 15.6,
+      "queued": 694,
+      "completed": 354,
+      "waiting": 241,
+      "flow": 2808,
+      "meanTrip": 3.054931732580038
+    },
+    "flyoversOn": {
+      "simSeconds": 600,
+      "arrivals": 1200,
+      "speed": 36.8,
+      "queued": 144,
+      "completed": 782,
+      "waiting": 0,
+      "flow": 6576,
+      "meanTrip": 3.006660272804774
+    },
+    "signalsOff": {
+      "simSeconds": 600,
+      "arrivals": 1200,
+      "speed": 49.7,
+      "queued": 0,
+      "completed": 856,
+      "waiting": 0,
+      "flow": 7200,
+      "meanTrip": 2.7728582554517134
+    },
+    "signalsOn": {
+      "simSeconds": 600,
+      "arrivals": 1200,
+      "speed": 36.8,
+      "queued": 144,
+      "completed": 782,
+      "waiting": 0,
+      "flow": 6576,
+      "meanTrip": 3.006660272804774
+    }
+  },
   "heavyLoad": {
     "network": "grid",
     "simSeconds": 900,
@@ -992,9 +1064,9 @@
     "minGap": 0.008999999999997135,
     "minGapDuringRunKm": 0.0010202391098063767,
     "spacingViolationPairChecks": 0,
-    "spacingPairChecks": 3633400,
+    "spacingPairChecks": 8470409,
     "junctionConflictSteps": 0,
-    "groundJunctionTransitions": 2494,
+    "groundJunctionTransitions": 8758,
     "maxGroundTransitionsPerJunctionStep": 1,
     "recentDistance": 90.74963555241462,
     "recentCompletions": 56,
@@ -1032,7 +1104,7 @@
       "strandedOnClosedFlyoverAfterClearance": 0
     },
     "junctionRuleCheck": {
-      "groundTransitions": 2494,
+      "groundTransitions": 8758,
       "conflictSteps": 0,
       "maxGroundMovementsPerNodePerTick": 1
     },
@@ -1041,9 +1113,13 @@
       "canvasWidth": 290,
       "height": 360,
       "vehicleMarkers": 628,
-      "maxMarkerWidth": 0.85,
-      "minProjectedBumperGapPx": 0.6694209500998658,
-      "minIconClearancePx": 0.10067095009986582,
+      "minMarkerWidth": 2.8,
+      "maxMarkerWidth": 2.8,
+      "queueHighlights": 15,
+      "desktopMarkers": 628,
+      "desktopQueueHighlights": 15,
+      "minProjectedBumperGapPx": 1.3387499999995738,
+      "minIconClearancePx": 1.232499999999574,
       "lanePlacementViolations": 0,
       "signalLabels": 18,
       "signalsDrawnAfterVehicles": true
@@ -1058,5 +1134,5 @@
     "mobileCssBreakpointsPresent": true,
     "illustrativeModelLabelPresent": true
   },
-  "simulations": 23
+  "simulations": 30
 }
