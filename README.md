@@ -1,6 +1,17 @@
 # Flowstate Traffic Lab
 
-A browser-based illustrative agent traffic model. It is not a validated real-world traffic prediction. Open `index.html` directly or serve this folder with any static web server.
+A browser-based illustrative agent traffic model. It is not a validated real-world traffic prediction.
+
+## Run locally
+
+There is no build step or application dependency install. Open `index.html` in a browser, or serve this directory with Python:
+
+```sh
+cd traffic-lab
+python3 -m http.server 8000
+```
+
+Then open `http://localhost:8000`. The page uses Google Fonts when available and falls back to system fonts when the font service cannot be reached. Browser compatibility and real-browser rendering have not been verified in this project session.
 
 ## Features
 - Three scenario presets: downtown grid, arterial corridor, and mixed-use district.
@@ -14,6 +25,10 @@ A browser-based illustrative agent traffic model. It is not a validated real-wor
 - Speed is measured from vehicle distance and time over a rolling 60 simulation-second window. Flow uses completed trips over up to the last 5 simulation minutes. Congestion is the current share of queued vehicles. Trip time is the mean of completed trips.
 - The clock advances at 8× real time. Measurements and the 2-second lane headway are illustrative assumptions for scenario exploration, not calibrated transport planning.
 
+## Model limitations
+
+This is a small, fixed network model for illustrative scenario exploration. Roads, capacities, demand, and signal timings are assumptions rather than field-calibrated values. It does not model pedestrians, transit, vehicle classes, incidents, weather, or calibrated turning behavior. Its simplified lane-following and junction reservation rules do not establish real-world safety or predict actual travel conditions. Scenario comparisons should be interpreted as outputs of these assumptions, not validated forecasts.
+
 ## QA
 
-Run `node qa.mjs` to execute fixed-duration model scenarios in a Node VM with a mocked DOM and canvas. It compares Peak-demand controls on all three networks, runs a 600 simulation-second arterial comparison, checks low and heavy demand, demand accounting, run/reset/network-switch state, and draws the loaded scene at phone and desktop canvas sizes. Every 0.25 simulation seconds it compares vehicles sharing an edge, direction, and lane; bumper clearance is center spacing minus the modeled 5 m vehicle length. It also checks that at most one ground-to-ground move uses a junction per tick. These are model-rule checks, not geometric collision detection at intersections. `qa-results.json` is the latest captured output. The mocked canvas checks marker dimensions, queue highlights, and signal draw order, not actual browser layout; this environment could not launch Safari or Chrome.
+Run `node qa.mjs` with Node.js to execute fixed-duration model scenarios in a Node VM with a mocked DOM and canvas. This project session ran it with Node v26.13.0. The suite compares Peak-demand controls on all three networks, runs a 600 simulation-second arterial comparison, checks low and heavy demand, demand accounting, run/reset/network-switch state, and draws the loaded scene at phone and desktop canvas sizes. Every 0.25 simulation seconds it compares vehicles sharing an edge, direction, and lane; bumper clearance is center spacing minus the modeled 5 m vehicle length. It also checks that at most one ground-to-ground move uses a junction per tick. These are model-rule checks, not geometric collision detection at intersections. `qa-results.json` contains the latest captured output. The mocked canvas checks marker dimensions, queue highlights, and signal draw order, not actual browser layout; Safari and Chrome could not be launched here, so browser rendering and browser-console behavior remain unverified.
